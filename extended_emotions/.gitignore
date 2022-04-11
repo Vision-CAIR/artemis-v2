@@ -1,0 +1,4 @@
+.ipynb*
+artemis_analysis/data
+dcgm
+artemis_analysis/dcgm

@@ -1,0 +1,3 @@
+[submodule "image-specificity"]
+	path = image-specificity
+	url = https://github.com/cltl/Image-Specificity.git

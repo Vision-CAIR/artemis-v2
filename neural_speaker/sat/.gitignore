@@ -1,0 +1,36 @@
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
+# Jupyter.
+artemis/notebooks/.ipynb_checkpoints/*
+*.ipynb_checkpoints*
+
+# Pycharm.
+.idea/*
+# Keep dictionaries
+!.idea/dictionaries
+
+# Misc.
+*.so
+*.o
+*.swp
+
+# ArtEmis specific
+artemis/kept_out/*
+
+artemis/evaluation/pycocoevalcap/spice/lib/stanford-corenlp-3.6.0-models.jar
+artemis/evaluation/pycocoevalcap/spice/lib/stanford-corenlp-3.6.0.jar
+artemis/evaluation/pycocoevalcap/spice/cache/*
+artemis/evaluation/pycocoevalcap/spice/tmp/*
+
+# Hack for temp version
+artemis_temp/evaluation/pycocoevalcap/spice/lib/stanford-corenlp-3.6.0-models.jar
+artemis_temp/evaluation/pycocoevalcap/spice/lib/stanford-corenlp-3.6.0.jar
+artemis_temp/evaluation/pycocoevalcap/spice/cache/*
+artemis_temp/evaluation/pycocoevalcap/spice/tmp/*

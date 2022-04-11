@@ -1,0 +1,26 @@
+name: emotions
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - pytorch
+  - torchaudio
+  - torchvision
+  - cudatoolkit=10.2
+  - h5py
+  - pandas
+  - jupyter
+  - matplotlib
+  - tqdm
+  - av
+  - ffmpeg
+  - scikit-learn
+  - imageio
+  - pip:
+    - huggingface-hub
+    - imbalanced-learn
+    - tabulate
+    - tokenizers
+    - transformers
+    - urllib3
+prefix: /home/mohameys/miniconda3/envs/emotions
