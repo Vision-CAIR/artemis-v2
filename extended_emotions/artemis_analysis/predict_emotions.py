@@ -26,7 +26,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 
 EMOTION_ID = {}
 ID_EMOTION = {}
-with open('/ibex/scratch/mohameys/text_to_emotions/data/emotions.txt', 'r') as f:
+with open('../data/emotions.txt', 'r') as f:
     i = 0
     for line in f:
         emotion = line.split('\n')[0]
