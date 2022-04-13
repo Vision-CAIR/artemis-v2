@@ -215,9 +215,9 @@ if __name__ == '__main__':
 
     if args.resume_last or args.resume_best:
         if args.resume_last:
-            fname = 'saved_models/%s_last.pth' % args.exp_name
+            fname = 'saved_m2_models/%s_last.pth' % args.exp_name
         else:
-            fname = 'saved_models/%s_best.pth' % args.exp_name
+            fname = 'saved_m2_models/%s_best.pth' % args.exp_name
 
         if os.path.exists(fname):
             data = torch.load(fname)
@@ -299,14 +299,14 @@ if __name__ == '__main__':
             'scheduler': scheduler.state_dict(),
             'patience': patience,
             'best_cider': best_cider,
-        }, 'saved_models/%s_last.pth' % args.exp_name)
+        }, 'saved_m2_models/%s_last.pth' % args.exp_name)
         if args.use_emotion_labels:
-            torch.save(emotion_encoder.state_dict(), 'saved_models/%s_emo_last.pth' % args.exp_name)
+            torch.save(emotion_encoder.state_dict(), 'saved_m2_models/%s_emo_last.pth' % args.exp_name)
 
         if best:
-            copyfile('saved_models/%s_last.pth' % args.exp_name, 'saved_models/%s_best.pth' % args.exp_name)
+            copyfile('saved_m2_models/%s_last.pth' % args.exp_name, 'saved_m2_models/%s_best.pth' % args.exp_name)
             if args.use_emotion_labels:
-                copyfile('saved_models/%s_emo_last.pth' % args.exp_name, 'saved_models/%s_emo_best.pth' % args.exp_name)
+                copyfile('saved_m2_models/%s_emo_last.pth' % args.exp_name, 'saved_m2_models/%s_emo_best.pth' % args.exp_name)
 
         if exit_train:
             writer.close()

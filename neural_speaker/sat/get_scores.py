@@ -48,10 +48,14 @@ POS_NEG_ELSE = {'amusement': 0, 'awe': 0, 'contentment': 0, 'excitement': 0,
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-captions_file', type=str, help='Path to the captions file generated using sample_speaker.py') 
+    parser.add_argument('-vocab_path', type=str, help='Path to teh vocab used to train the sat model') 
+    parser.add_argument('-test_set', type=str, help='Path to test set containing ground truth captions') 
+    parser.add_argument('-imgs_dir', type=str, help='Path to wikiart dataset')
     parser.add_argument('--filter', type=str, default=None,
                         help='Emotion breakdown filter. one from [dummy, fine, coarse]')
     parser.add_argument('--filter_limit', type=int, default=0,
-                        help='threshold where reference captions are removed')
+                        help='Minimum number of reference captions available, below which the generated caption is neglected')
     return parser.parse_args()
 
 def pos_neg_filter_tmp(original_row, target_emo, emo_mapping, threshold):
@@ -124,17 +128,11 @@ args = parse_args()
 
 evaluation_methods = {'bleu', 'cider', 'meteor', 'rouge'}
 # top-image dir
-wiki_art_img_dir = '/ibex/scratch/mohameys/wiki_art_paintings/rescaled_600px_max_side/'
+wiki_art_img_dir = args.img_dir
 split = 'test'
 gpu_id = 0
 device = torch.device("cuda:" + str(gpu_id))
 default_lcs_sample = [25000, 800]
-# train_sets = ['combined_emo', 'old_large_emo']# , 'combined', 'old_large', 'new', 'old_small']
-# train_sets = ['old_small_emo', 'new_emo']
-train_sets = ['combined_emo', 'old_large_emo', 'old_small_emo', 'new_emo']
-# test_sets = ['all', 'new', 'old', 'ref', '40']
-# test_sets = ['all', '40']
-test_sets = ['40']
 
 pos_neg_filter = None
 if args.filter == 'dummy':
@@ -146,86 +144,76 @@ elif args.filter == 'coarse':
 
 print(f'Using granuality: {args.filter}::{pos_neg_filter}')
 
-for exp_name in train_sets:
-    for test_set in test_sets:
-        # output of preprocess_artemis_data.py
-#         references_file = '/home/mohameys/artemis/artemis/artemis/dataset/old_full/train/artemis_gt_references_grouped.pkl'  # evaluating the training sets
-        references_file = f'/home/mohameys/artemis/artemis/artemis/dataset/test_{test_set}/test_{test_set}.csv'
-        if 'emo' in exp_name:
-            vocab_path = '/home/mohameys/artemis/artemis/artemis/dataset/'+'_'.join(exp_name.split('_')[:-1])+'/train/vocabulary.pkl'
-        elif 'vanilla' in exp_name:
-            vocab_path = '/home/mohameys/artemis/artemis/artemis/dataset/'+'old_full'+'/train/vocabulary.pkl'
-        else:
-            vocab_path = '/home/mohameys/artemis/artemis/artemis/dataset/'+exp_name+'/train/vocabulary.pkl'
-        # the file with the samples
-        sampled_captions_file = f'/home/mohameys/artemis/artemis/sampled/SAT_Artemis_{exp_name}_{test_set}.pkl'
-        
-        txt2emo_clf = None
-        txt2emo_vocab = Vocabulary.load(vocab_path)
-        
-        if 'pkl' in references_file:
-            gt_data = next(unpickle_data(references_file))
-            train_utters = gt_data['train']['references_pre_vocab']
-            gt_data = gt_data[split]     
-        else:
-            gt_data = pd.read_csv(references_file)
-            gt_data = group_gt_annotations(gt_data, txt2emo_vocab)
-            gt_data = gt_data[split]  
-            train_utters = gt_data['references_pre_vocab']
-            
-        
-        train_utters = list(itertools.chain(*train_utters))  # undo the grouping per artwork to a single large list
-        print('Training Utterances', len(train_utters))
-        unique_train_utters = set(train_utters)
-        print('Unique Training Utterances', len(unique_train_utters))
-        print('Images Captioned', len(gt_data))
-        
-        saved_samples = next(unpickle_data(sampled_captions_file))
+test_set = args.test_set.split('/')[-1].split('.')[0]
+references_file = args.test_set
+vocab_path = args.vocab_path
+# the file with the samples
+sampled_captions_file = args.captions_file
 
-        for sampling_config_details, captions, attn in saved_samples:  # you might have sampled under several sampling configurations
-            print('Sampling Config:', sampling_config_details)        
-            print(f'exp name: {exp_name}_{test_set}')
-            print()            
-            print_out_some_basic_stats(captions)
-            print()
-            
-            # required to make the custom test data the same as the wikiart test set
-            captions = captions.apply(split_img_file, axis=1) if 'csv' in references_file else captions
-            
-            merged = pd.merge(gt_data, captions)  # this ensures proper order of captions to gt (via accessing merged.captions)
-            def compute_metrics(df):
-                hypothesis = df.caption
-                references = df.references_pre_vocab
-                ref_emotions = df.emotion
-                metrics_eval = apply_basic_evaluations(hypothesis, references, ref_emotions, txt2emo_clf, txt2emo_vocab, 
-                                                       nltk_bleu=False, lcs_sample=default_lcs_sample,
-                                                       train_utterances=unique_train_utters,
-                                                       methods_to_do=evaluation_methods)
-                return pd.DataFrame(metrics_eval)
-            
-            if pos_neg_filter is not None:
-                gdf=merged.groupby(by='grounding_emotion').agg(list)
-                emotion_metrics = {}
-                for target_emo in gdf.index:
-                    s = gdf.loc[target_emo]
-                    dft = pd.DataFrame.from_dict(dict(zip(s.index, s.values)))
-                    filter_func = lambda x: pos_neg_filter(x, target_emo)
-                    dft = dft.apply(filter_func, axis=1)
-                    df = dft.dropna()
-                    print(f'For Emotion {target_emo}, Samples dropped: {len(dft)-len(df)}')
+txt2emo_clf = None
+txt2emo_vocab = Vocabulary.load(vocab_path)
 
-                    metrics_eval = compute_metrics(df)
-                    emotion_metrics[target_emo] = metrics_eval
-                # average score per emotion and save the emotion breakdown scores as a .pkl file
-                a = pd.Series(np.zeros_like(list(emotion_metrics.values())[0]['mean']))
-                for df in emotion_metrics.values():
-                    a += df['mean']
-                a /= len(emotion_metrics)
-                print(a)
-                with open(f'emotion_break/{exp_name}_{test_set}_{args.filter}.pkl', 'wb') as f:
-                    pickle.dump(emotion_metrics, f)
-            else:
-                metrics_eval = compute_metrics(merged)
-                print(pd.DataFrame(metrics_eval))
-                print()
-        print('#'*75)
+if 'pkl' in references_file:
+    gt_data = next(unpickle_data(references_file))
+    train_utters = gt_data['train']['references_pre_vocab']
+    gt_data = gt_data[split]     
+else:
+    gt_data = pd.read_csv(references_file)
+    gt_data = group_gt_annotations(gt_data, txt2emo_vocab)
+    gt_data = gt_data[split]  
+    train_utters = gt_data['references_pre_vocab']
+    
+
+train_utters = list(itertools.chain(*train_utters))  # undo the grouping per artwork to a single large list
+print('Training Utterances', len(train_utters))
+unique_train_utters = set(train_utters)
+print('Unique Training Utterances', len(unique_train_utters))
+print('Images Captioned', len(gt_data))
+
+saved_samples = next(unpickle_data(sampled_captions_file))
+
+for sampling_config_details, captions, attn in saved_samples:  # you might have sampled under several sampling configurations
+    print('Sampling Config:', sampling_config_details)        
+    print()            
+    print_out_some_basic_stats(captions)
+    print()
+    
+    # required to make the custom test data the same as the wikiart test set
+    captions = captions.apply(split_img_file, axis=1) if 'csv' in references_file else captions
+    
+    merged = pd.merge(gt_data, captions)  # this ensures proper order of captions to gt (via accessing merged.captions)
+    def compute_metrics(df):
+        hypothesis = df.caption
+        references = df.references_pre_vocab
+        ref_emotions = df.emotion
+        metrics_eval = apply_basic_evaluations(hypothesis, references, ref_emotions, txt2emo_clf, txt2emo_vocab, 
+                                                nltk_bleu=False, lcs_sample=default_lcs_sample,
+                                                train_utterances=unique_train_utters,
+                                                methods_to_do=evaluation_methods)
+        return pd.DataFrame(metrics_eval)
+    
+    if pos_neg_filter is not None:
+        gdf=merged.groupby(by='grounding_emotion').agg(list)
+        emotion_metrics = {}
+        for target_emo in gdf.index:
+            s = gdf.loc[target_emo]
+            dft = pd.DataFrame.from_dict(dict(zip(s.index, s.values)))
+            filter_func = lambda x: pos_neg_filter(x, target_emo)
+            dft = dft.apply(filter_func, axis=1)
+            df = dft.dropna()
+            print(f'For Emotion {target_emo}, Samples dropped: {len(dft)-len(df)}')
+
+            metrics_eval = compute_metrics(df)
+            emotion_metrics[target_emo] = metrics_eval
+        # average score per emotion and save the emotion breakdown scores as a .pkl file
+        a = pd.Series(np.zeros_like(list(emotion_metrics.values())[0]['mean']))
+        for df in emotion_metrics.values():
+            a += df['mean']
+        a /= len(emotion_metrics)
+        print(a)
+        with open(f'emotion_break/{test_set}_{args.filter}.pkl', 'wb') as f:
+            pickle.dump(emotion_metrics, f)
+    else:
+        metrics_eval = compute_metrics(merged)
+        print(pd.DataFrame(metrics_eval))
+        print()

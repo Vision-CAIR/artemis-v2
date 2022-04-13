@@ -1,4 +1,4 @@
-name: emotions
+name: artemis-sst
 channels:
   - defaults
 dependencies:
@@ -23,4 +23,4 @@ dependencies:
     - tokenizers
     - transformers
     - urllib3
-prefix: /home/mohameys/miniconda3/envs/emotions
+prefix: /home/mohameys/miniconda3/envs/artemis-sst

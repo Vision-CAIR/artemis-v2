@@ -87,7 +87,7 @@ def parse_train_speaker_arguments(notebook_options=None, save_args=False):
     parser.add_argument('--dataset', type=str, default='artemis')
     parser.add_argument('--random-seed', type=int, default=2021)
     parser.add_argument('--debug', default=False, type=str2bool)
-    parser.add_argument('--use-timestamp', default=True, type=str2bool)
+    parser.add_argument('--use-timestamp', default=False, type=str2bool)
 
     # Parse arguments
     if notebook_options is not None:  # Pass options directly

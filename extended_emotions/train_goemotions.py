@@ -238,4 +238,4 @@ print("")
 print("Training complete!")
 current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
-model.save_pretrained(f'/ibex/scratch/mohameys/text_to_emotions/go_models/{out_file}_trained_bert_{current_time}')
+model.save_pretrained(f'go_models/{out_file}_trained_{args.model}_{current_time}')
