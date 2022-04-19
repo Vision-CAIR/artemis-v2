@@ -1,6 +1,4 @@
 import argparse
-import itertools
-import multiprocessing
 import os
 import pickle
 import random
@@ -21,6 +19,13 @@ from data import (ArtEmis, ArtEmisDetectionsField, DataLoader, EmotionField,
 from evaluation import Cider, PTBTokenizer
 from models.transformer import (MemoryAugmentedEncoder, MeshedDecoder,
                                 ScaledDotProductAttentionMemory, Transformer)
+
+import pathlib
+import os.path as osp
+import os
+
+ROOT_DIR = osp.split(pathlib.Path(__file__).parent.parent.absolute())[0]
+os.makedirs('saved_m2_models', exist_ok=True)
 
 random.seed(1234)
 torch.manual_seed(1234)
@@ -141,7 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume_last', action='store_true')
     parser.add_argument('--resume_best', action='store_true')
     parser.add_argument('--features_path', type=str)
-    parser.add_argument('--annotation_folder', type=str)
+    parser.add_argument('--annotation_file', type=str)
     parser.add_argument('--logs_folder', type=str, default='tensorboard_logs')
     parser.add_argument('--use_emotion_labels', type=bool, default=False)
     args = parser.parse_args()
@@ -152,7 +157,8 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir=os.path.join(args.logs_folder, args.exp_name))
 
     # Pipeline for image regions
-    image_field = ArtEmisDetectionsField(detections_path=args.features_path, max_detections=50)
+    features_path = args.features_path if osp.isabs(args.features_path) else osp.join(ROOT_DIR, args.features_path)
+    image_field = ArtEmisDetectionsField(detections_path=features_path, max_detections=50)
 
     # Pipeline for text
     text_field = TextField(init_token='<bos>', eos_token='<eos>', lower=True, tokenize='spacy',
@@ -166,7 +172,8 @@ if __name__ == '__main__':
     emotion_field = EmotionField(emotions=emotions)
 
     # Create the dataset
-    dataset = ArtEmis(image_field, text_field, emotion_field, args.annotation_folder)
+    annotation_file = args.annotation_file if osp.isabs(args.annotation_file) else osp.join(ROOT_DIR, args.annotation_file)
+    dataset = ArtEmis(image_field, text_field, emotion_field, annotation_file)
     train_dataset, val_dataset, test_dataset = dataset.splits
 
     if not os.path.isfile('vocab_%s.pkl' % args.exp_name):

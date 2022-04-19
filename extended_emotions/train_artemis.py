@@ -10,6 +10,11 @@ import datetime
 import random
 import argparse
 
+import pathlib
+import os.path as osp
+
+ROOT_DIR = osp.split(pathlib.Path(__file__).parent.absolute())[0]
+
 def flat_accuracy(preds, labels):
     preds = (1 / (1 + np.exp(-preds)))
     pred_flat = np.round(preds).astype(int)
@@ -32,6 +37,10 @@ parser.add_argument("--train_set", required=True, help="Training set path")
 parser.add_argument("--test_set", required=True, help="Testing set path")
 args = parser.parse_args()
 out_file = args.out_file
+
+fix_path = lambda p: p if osp.isabs(p) else osp.join(ROOT_DIR, p)
+args.train_set = fix_path(args.train_set)
+args.test_set = fix_path(args.test_set)
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 

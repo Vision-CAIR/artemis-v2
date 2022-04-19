@@ -13,6 +13,11 @@ from data import (ArtEmis, ArtEmisDetectionsField, DataLoader, EmotionField,
 from models.transformer import (MemoryAugmentedEncoder, MeshedDecoder,
                                 ScaledDotProductAttentionMemory, Transformer)
 
+import pathlib
+import os.path as osp
+
+ROOT_DIR = osp.split(pathlib.Path(__file__).parent.parent.absolute())[0]
+
 random.seed(1234)
 torch.manual_seed(1234)
 np.random.seed(1234)
@@ -67,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=10)
     parser.add_argument('--workers', type=int, default=0)
     parser.add_argument('--features_path', type=str)
-    parser.add_argument('--annotation_folder', type=str)
+    parser.add_argument('--annotation_file', type=str)
     parser.add_argument('--use_emotion_labels', type=bool, default=False)
 
     args = parser.parse_args()
@@ -75,7 +80,8 @@ if __name__ == '__main__':
     print('Meshed-Memory Transformer Evaluation')
 
     # Pipeline for image regions
-    image_field = ArtEmisDetectionsField(detections_path=args.features_path, max_detections=50)
+    features_path = args.features_path if osp.isabs(args.features_path) else osp.join(ROOT_DIR, args.features_path)
+    image_field = ArtEmisDetectionsField(detections_path=features_path, max_detections=50)
 
     # Pipeline for text
     text_field = TextField(init_token='<bos>', eos_token='<eos>', lower=True, tokenize='spacy',
@@ -89,7 +95,8 @@ if __name__ == '__main__':
     emotion_field = EmotionField(emotions=emotions)
 
     # Create the dataset
-    dataset = ArtEmis(image_field, text_field, emotion_field, args.annotation_folder)
+    annotation_file = args.annotation_file if osp.isabs(args.annotation_file) else osp.join(ROOT_DIR, args.annotation_file)
+    dataset = ArtEmis(image_field, text_field, emotion_field, annotation_file)
     _, _, test_dataset = dataset.splits
     text_field.vocab = pickle.load(open('vocab_%s.pkl' % args.exp_name, 'rb'))
 

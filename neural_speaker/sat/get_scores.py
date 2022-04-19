@@ -10,6 +10,11 @@ from artemis.in_out.basics import unpickle_data
 from artemis.utils.vocabulary import Vocabulary
 from artemis.evaluation.single_caption_per_image import apply_basic_evaluations
 
+import pathlib
+import os.path as osp
+
+ROOT_DIR = osp.split(pathlib.Path(__file__).parent.parent.absolute())[0]
+
 def print_out_some_basic_stats(captions):
     """
     Input: captions dataframe with column names caption
@@ -51,7 +56,6 @@ def parse_args():
     parser.add_argument('-captions_file', type=str, help='Path to the captions file generated using sample_speaker.py') 
     parser.add_argument('-vocab_path', type=str, help='Path to teh vocab used to train the sat model') 
     parser.add_argument('-test_set', type=str, help='Path to test set containing ground truth captions') 
-    parser.add_argument('-imgs_dir', type=str, help='Path to wikiart dataset')
     parser.add_argument('--filter', type=str, default=None,
                         help='Emotion breakdown filter. one from [dummy, fine, coarse]')
     parser.add_argument('--filter_limit', type=int, default=0,
@@ -128,7 +132,6 @@ args = parse_args()
 
 evaluation_methods = {'bleu', 'cider', 'meteor', 'rouge'}
 # top-image dir
-wiki_art_img_dir = args.img_dir
 split = 'test'
 gpu_id = 0
 device = torch.device("cuda:" + str(gpu_id))
@@ -145,10 +148,11 @@ elif args.filter == 'coarse':
 print(f'Using granuality: {args.filter}::{pos_neg_filter}')
 
 test_set = args.test_set.split('/')[-1].split('.')[0]
-references_file = args.test_set
-vocab_path = args.vocab_path
+references_file = args.test_set if osp.isabs(args.test_set) else osp.join(ROOT_DIR, args.test_set)
+vocab_path = args.vocab_path if osp.isabs(args.vocab_path) else osp.join(ROOT_DIR, args.vocab_path)
+captions_file = args.captions_file if osp.isabs(args.captions_file) else osp.join(ROOT_DIR, args.captions_file)
 # the file with the samples
-sampled_captions_file = args.captions_file
+sampled_captions_file = captions_file
 
 txt2emo_clf = None
 txt2emo_vocab = Vocabulary.load(vocab_path)

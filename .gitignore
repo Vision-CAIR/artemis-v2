@@ -1,2 +1,5 @@
 dataset/official_data/
 *.slurm
+dcgm
+logs
+sat_sampled

@@ -9,6 +9,12 @@ import datetime
 import random
 import argparse
 
+import pathlib
+import os.path as osp
+import os
+
+ROOT_DIR = osp.split(pathlib.Path(__file__).parent.parent.absolute())[0]
+
 def format_time(elapsed):
     elapsed_rounded = int(round((elapsed)))
     return str(datetime.timedelta(seconds=elapsed_rounded))
@@ -22,6 +28,11 @@ parser.add_argument("--dataset", required=True, help="dataset to predict the emo
 parser.add_argument("--dataset_name", required=True, help="dataset name to save the modified dataset")
 
 args = parser.parse_args()
+
+fix_path = lambda p: p if osp.isabs(p) else osp.join(ROOT_DIR, p)
+args.dataset = fix_path(args.dataset)
+args.model_dir = fix_path(args.model_dir)
+
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 EMOTION_ID = {}
@@ -117,4 +128,5 @@ print("  evaluation took: {:}".format(format_time(time.time() - t0)))
         
 df_train['go_emotions'] = pd.Series(predicted_labels.tolist())
 dataset_name = args.dataset_name
-df_train.to_csv(f'/ibex/scratch/mohameys/text_to_emotions/artemis_analysis/data/{dataset_name}_go_emotions.csv', index=False)
+os.makedirs(osp.join(ROOT_DIR, f'extended_emotions/artemis_analysis/data'), exist_ok=True)
+df_train.to_csv(osp.join(ROOT_DIR, f'extended_emotions/artemis_analysis/data/{dataset_name}_go_emotions.csv'), index=False)

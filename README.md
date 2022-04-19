@@ -43,13 +43,36 @@ Now, you can resume combining and preprocessing the dataset.
 
 ```bash
 conda activate artemis-sat
-python dataset/combine.py dataset/offical_data/
-python neural_speaker/sat/scripts/preprocess_artemis_data.py -save-out-dir dataset/full_combined/train/ -raw-artemis-data-csv  dataset/official_data/combined_artemis.csv --preprocess-for-deep-nets True 
+python dataset/combine.py --root dataset/official_data/
+python neural_speaker/sat/artemis/scripts/preprocess_artemis_data.py -save-out-dir dataset/full_combined/train/ -raw-artemis-data-csv  dataset/official_data/combined_artemis.csv --preprocess-for-deep-nets True 
+python dataset/create_parts.py
 ```
 
 Congratulations, you now have the preprocessed data ready!
 
-Let's train some Neural Speakers next. We will start first with Show, Attend, and Tell since we have already setup its environment, then we will train [Meshed Memory Transformer](#meshed-memory-transformer).
+The naming of each directory reflects the type of instances in each dataset:
+
+Train sets:
+
+* `combined` is basically ArtEmis 2.0, it contains all the contrastive data and a sample of similar size from ArtEmis 1.0
+* `full_combined` contains all contrastive data and all of ArtEmis 1.0
+* `new` contains all the contrastive data only
+* `old_full` is ArtEmis 1.0
+* `old_large` a sample of same size as `combined` but all samples come from ArtEmis 1.0
+* `old_small` a sample of same size as `new` but comes only from ArtEmis 1.0
+
+Test sets:
+
+* `test_40` is the subset from ArtEmis 1.0 with paintings having 40+ annotations, it contains ~700 paintings
+* `test_all` is a test set from the ArtEmis 2.0 with samples from both ArtEmis 1.0 and the contrastive data
+* `test_new` contains samples only from the contrastive data
+* `test_old` contains samples only from ArtEmis 1.0
+* `test_ref` is the same test set used in the original ArtEmis paper
+
+Except for `test_40` all test sets have paintings with 5 captions. We made sure that these paintings are not included in any training set.
+We created all of these test sets to guarantee a fair comparison and ensure no data leak.
+
+Now, let's train some Neural Speakers next. We will start first with Show, Attend, and Tell since we have already setup its environment, then we will train [Meshed Memory Transformer](#meshed-memory-transformer).
 
 ### SAT Neural Speaker
 
@@ -65,6 +88,7 @@ To train a SAT model,
 
 ```bash
 conda activate artemis-sat
+mkdir -p <LOGS PATH>
 python neural_speaker/sat/artemis/scripts/train_speaker.py \
  -log-dir <LOGS PATH> \
  -data-dir <TRAIN DATASET PATH>  \
@@ -76,9 +100,10 @@ For example to train on the Combined dataset with emotional grounding (if you fo
 
 ```bash
 conda activate artemis-sat
+mkdir -p sat_logs/sat_combined
 python neural_speaker/sat/artemis/scripts/train_speaker.py \
- -log-dir logs/sat_combined \
- -data-dir dataset/comined/train/  \
+ -log-dir sat_logs/sat_combined \
+ -data-dir dataset/combined/train/  \
  -img-dir <PATH TO WIKIART IMAGES>  \
  --use-emo-grounding True
 ```
@@ -93,11 +118,12 @@ Now, let's use our trained model to generate captions. For example let's use the
 
 ```bash
 conda activate artemis-sat
+mkdir -p sat_sampled
 python neural_speaker/sat/artemis/scripts/sample_speaker.py \
--speaker-saved-args logs/sat_combined/config.json.txt \
--speaker-checkpoint logs/sat_combined/checkpoints/best_model.pt \
+-speaker-saved-args sat_logs/sat_combined/config.json.txt \
+-speaker-checkpoint sat_logs/sat_combined/checkpoints/best_model.pt \
 -img-dir <PATH TO WIKIART IMAGES> \
--out-file  sampled/sat_combined.pkl \
+-out-file  sat_sampled/sat_combined.pkl \
 --custom-data-csv  dataset/test_40/test_40.csv 
 ```
 
@@ -110,10 +136,9 @@ To produce the metrics reported in the paper for the generated captions,
 ```bash
 conda activate artemis-sat
 python neural_speaker/sat/get_scores.py \
--captions_file sampled/sat_combined.pkl \
--vocab_path dataset/comined/train/vocabulary.pkl \
+-captions_file sat_sampled/sat_combined.pkl \
+-vocab_path dataset/combined/train/vocabulary.pkl \
 -test_set dataset/test_40/test_40.csv \
--img_dir <PATH TO WIKIART IMAGES> 
 [--filter (fine | coarse)]
 ```
 
@@ -121,7 +146,7 @@ python neural_speaker/sat/get_scores.py \
 
 NOTE: `get_scores.py` has more metrics, have fun trying them out.
 
-Finally, you can use `neural_speaker/sat/visualizations.ipynb` to get the plots used in the paper. You can also use it to visualize the captions and some attention maps over the input images. We also decided to leave the original analysis notebooks from ArtEmis 1.0 under `neural_speaker/sat/artemis/notebooks/` because they are very useful and can help gain useful insights.
+Finally, you can use `neural_speaker/sat/visualizations.ipynb` to get the plots used in the paper. You can also use it to visualize the captions and some attention maps over the input images. We also decided to leave the original analysis notebooks from ArtEmis 1.0 under `neural_speaker/sat/artemis/notebooks/` because they are very rich and can help gain useful insights.
 
 ## Meshed Memory Transformer
 
@@ -165,7 +190,7 @@ python neural_speaker/m2/train.py \
   --batch_size 128 \
   --features_path neural_speaker/m2/extracted_features/ \
   --workers 32 \
-  --annotation_folder dataset/combined/train/artemis_preprocessed.csv \
+  --annotation_file dataset/combined/train/artemis_preprocessed.csv \
  [--use_emotion_labels True]
 ```
 
@@ -198,6 +223,7 @@ python neural_speaker/m2/nn_baseline.py \
 -splits_file dataset/combined/train/artemis_preprocessed.csv \
 -test_splits_file dataset/test_all/test_all.csv \
 --idx_file neural_speaker/m2/extracted_features/wikiart_split.pkl
+--nn_file neural_speaker/m2/extracted_features/vgg_nearest_neighbors.pkl
 ```
 
 ## Semantic Space Theory Analysis

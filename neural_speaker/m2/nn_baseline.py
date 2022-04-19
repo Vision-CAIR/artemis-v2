@@ -9,6 +9,11 @@ import pandas as pd
 import evaluation
 from evaluation.bleu import Bleu
 
+import pathlib
+import os.path as osp
+
+ROOT_DIR = osp.split(pathlib.Path(__file__).parent.parent.absolute())[0]
+
 
 random.seed(1234)
 np.random.seed(1234)
@@ -53,6 +58,12 @@ if __name__ == '__main__':
     parser.add_argument('--K', type=int, default=3, help='number of nearest neighbor to choose caption from')
     args = parser.parse_args()
     print(args)
+
+    fix_path = lambda p: p if osp.isabs(p) else osp.join(ROOT_DIR, p)
+    args.splits_file = fix_path(args.splits_file)
+    args.test_splits_file = fix_path(args.test_splits_file)
+    args.idx_file = fix_path(args.idx_file)
+    args.nn_file = fix_path(args.nn_file)
 
     with open(args.idx_file, 'rb') as f:
         image_ids = pickle.load(f)
