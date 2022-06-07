@@ -24,7 +24,7 @@ To merge them and create the train test splits. Please follow the preprocessing 
 
 ## Show Attend and Tell
 
-Our implementation is heavily based on the SAT model in the original ArtEmis dataset. We made this repo self-contained by including the instructions and files to reproduce the results of our paper. But, for more detailed instructions and analysis notebooks, please refer to the original [repo](https://github.com/optas/artemis).
+Our implementation is heavily based on the SAT model in the original ArtEmis dataset<sup>[1]</sup>. We made this repo self-contained by including the instructions and files to reproduce the results of our paper. But, for more detailed instructions and analysis notebooks, please refer to the original [repo](https://github.com/optas/artemis).
 
 ### Environment setup (SAT)
 
@@ -285,4 +285,4 @@ We provide the code to produce the plots in our paper in the notebook `extended_
 
 [3] [GoEmotions](https://github.com/google-research/google-research/tree/master/goemotions)
 
-[4] [$M^2$ Transformer](https://github.com/aimagelab/meshed-memory-transformer)
+[4] [M<sup>2</sup> Transformer](https://github.com/aimagelab/meshed-memory-transformer)
