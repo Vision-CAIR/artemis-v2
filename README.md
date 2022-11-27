@@ -17,8 +17,9 @@ Our contrastive dataset complements ArtEmis, thus to compile the full version, y
 
 * [ArtEmis](https://www.artemisdataset.org/#dataset)
 * [Contrastive data](https://www.artemisdataset-v2.org/)
+* [WikiArt Paintings](https://drive.google.com/file/d/1vTChp3nU5GQeLkPwotrybpUGUXj12BTK/view)
 
-Next, unzip ArtEmis into `dataset/official_data/` and place the `Contrastive.csv` file under the same directory.
+Next, unzip ArtEmis into `dataset/official_data/` and place the `Contrastive.csv` file under the same directory. Unzip the WikiArt paintings in any directory and update the <PATH_TO_WIKIART> whenever you come across it.
 
 To merge them and create the train test splits. Please follow the preprocessing steps in the SAT [section](#dataset-preprocessing).
 
